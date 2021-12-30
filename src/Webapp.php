@@ -370,8 +370,8 @@ class Webappbase extends \booosta\base\Module
     $template_module = $this->config('template_module') ?: 'bootstrap';
     $cfg_toptpl = $this->config('toptpl') ?: 'dashboard.html';
 
-    $tpls = [$cfg_toptpl, "lib/modules/$template_module/$cfg_toptpl",
-             "lib/modules/$template_module/dashboard.html", 'tpl/dashboard.html', "lib/modules/bootstrap/dashboard.html"];
+    $tpls = [$cfg_toptpl, "vendor/booosta/$template_module/$cfg_toptpl",
+             "vendor/booosta/$template_module/dashboard.html", 'tpl/dashboard.html', "vendor/booosta/bootstrap/dashboard.html"];
 
     foreach($tpls as $tpl)
       if(is_readable($tpl)) return $this->base_dir . $tpl;
@@ -742,7 +742,7 @@ class Webappbase extends \booosta\base\Module
 
     if($this->datatable_display_length) $list->set_datatable_display_length($this->datatable_display_length);
     $list->always_show_header(true);
-    $list->set_datatable_libpath($this->TPL['base_dir'] . 'lib/modules/datatable');
+    $list->set_datatable_libpath($this->TPL['base_dir'] . 'vendor/booosta/datatable');
     $list->set_id($this->datatable_id ?? $this->name);
 
     if($this->tablelister_table_class) $list->set_table_class($this->tablelister_table_class);
@@ -854,7 +854,7 @@ class Webappbase extends \booosta\base\Module
 
     if($this->datatable_display_length) $list->set_datatable_display_length($this->datatable_display_length);
     $list->always_show_header(true);
-    $list->set_datatable_libpath($this->TPL['base_dir'] . 'lib/modules/datatable');
+    $list->set_datatable_libpath($this->TPL['base_dir'] . 'vendor/booosta/datatable');
     $list->set_id($this->subname[$index] . $index);
 
     if($this->tablelister_table_class) $list->set_table_class($this->tablelister_table_class);
