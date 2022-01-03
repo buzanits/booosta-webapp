@@ -1,0 +1,4 @@
+Wollen Sie diese/n/s {%object} wirklich löschen?
+<br><br>
+<button data-remodal-action="confirm" class="remodal-confirm">Ja</button>
+<button data-remodal-action="cancel" class="remodal-cancel">Nein</button

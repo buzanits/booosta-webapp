@@ -2,7 +2,7 @@
 namespace booosta\webapp;
 \booosta\Framework::init_module('webapp');
 
-const FEEDBACK = 'systpl/feedback.tpl';
+const FEEDBACK = 'vendor/booosta/webapp/src/systpl/feedback.tpl';
 
 class Webappbase extends \booosta\base\Module
 {
@@ -106,7 +106,7 @@ class Webappbase extends \booosta\base\Module
     if($this->TPL === null) $this->TPL = ['_includes' => ''];
     if($site_name = $this->config('site_name')) $this->TPL['site_name'] = $site_name;
     if($site_logo = $this->config('site_logo')) $this->TPL['site_logo'] = $site_logo;
-    if($this->maintpl === null) $this->maintpl = 'systpl/empty.tpl';
+    if($this->maintpl === null) $this->maintpl = 'vendor/booosta/webapp/src/systpl/empty.tpl';
     
     if($this->toptpl === null) $this->toptpl = $this->get_toptpl();
     #\booosta\Framework::debug("toptpl: $this->toptpl");
@@ -670,7 +670,7 @@ class Webappbase extends \booosta\base\Module
     if($this->use_datatable === 'ajax') $result = [];
     else $result = $this->getall_data();
 
-    #\booosta\debug('result'); \booosta\debug($result);
+    #\booosta\Framework::debug('result'); \booosta\Framework::debug($result);
     $list = $this->get_tablelist($result);
     #\booosta\debug($list);
 
@@ -1070,8 +1070,8 @@ class Webappbase extends \booosta\base\Module
     \booosta\debug("yeslink: $yeslink");
 
     $tpl = $this->confirm_delete_text;
-    if($tpl == '' && is_readable('systpl/confirm_delete_modal.tpl.' . $this->lang)) $tpl = 'systpl/confirm_delete_modal.tpl.' . $this->lang;
-    if($tpl == '') $tpl = 'systpl/confirm_delete_modal.tpl';
+    if($tpl == '' && is_readable('vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang)) $tpl = 'vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang;
+    if($tpl == '') $tpl = 'vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl';
     
     $vars = ['object' => $this->t($this->name) ?: $this->name ?: $this->t('object')];
     if(is_array($this->confirm_delete_vars)) $vars = array_merge($vars, $this->confirm_delete_vars);
@@ -1088,7 +1088,7 @@ class Webappbase extends \booosta\base\Module
     // Hook after_action_delete
     $this->after_action_delete();
 
-    $this->maintpl = 'systpl/confirm_delete.tpl';
+    $this->maintpl = 'vendor/booosta/webapp/src/systpl/confirm_delete.tpl';
 
     return true;
   }
