@@ -20,6 +20,8 @@
         "booosta/mysqli": "dev-master",
         "booosta/templateparser": "dev-master",
         "booosta/tools": "dev-master",
+        "booosta/tablelister": "dev-master",
+        "booosta/db_foreignkeys": "dev-master",
         "booosta/translator": "dev-master"
     }
 }
