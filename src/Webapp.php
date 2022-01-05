@@ -443,7 +443,7 @@ class Webappbase extends \booosta\base\Module
     #\booosta\debug($templates);
     #\booosta\debug($this->VAR);
     #\booosta\debug($_SESSION);
-    #\booosta\debug("backpage: " . $this->get_backpage());
+    #\booosta\Framework::debug("parse backpage: " . $this->get_backpage());
     $this->output_preincludes();
     $this->output_includes();
 
@@ -1051,9 +1051,10 @@ class Webappbase extends \booosta\base\Module
     elseif(isset($_SESSION['backpage'])) $this->backpage = $_SESSION['backpage'];
     elseif($this->backpage == '') $this->backpage = $this->self;
 
-    #\booosta\debug("backpage: $this->backpage - _SESSION[backpage{$actionstr}_{$name}] = " . $_SESSION["backpage{$actionstr}_{$name}"]);
+    \booosta\Framework::debug("check_backpage: $this->backpage - _SESSION[backpage{$actionstr}_{$name}] = " . $_SESSION["backpage{$actionstr}_{$name}"]);
     unset($_SESSION["backpage_$name"]);
     unset($_SESSION["backpage{$actionstr}_{$name}"]);
+    #\booosta\Framework::debug($_SESSION);
   }
 
 
@@ -1067,7 +1068,7 @@ class Webappbase extends \booosta\base\Module
     $deleteyes_params = $this->deleteyes_params ?: '?action=deleteyes&object_id=';
 
     $yeslink = "$this->self$deleteyes_params$this->id$token";
-    \booosta\debug("yeslink: $yeslink");
+    #\booosta\Framework::debug("yeslink: $yeslink");
 
     $tpl = $this->confirm_delete_text;
     if($tpl == '' && is_readable('vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang)) $tpl = 'vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang;
@@ -1079,8 +1080,9 @@ class Webappbase extends \booosta\base\Module
     $modal = $this->makeInstance('ui_modal', 'delete');
     $modal->set_template($tpl, $vars);
     $modal->set_auto_open(true);
-    $modal->on_cancellation('javascript:history.go(-3);');
-    $modal->on_confirmation("location.href='$yeslink';");
+    #$modal->on_cancellation('console.log(222);');
+    $modal->on_cancellation('history.go(-3);');
+    $modal->on_confirmation("location.href='$yeslink'");
     $this->TPL['modal'] = $modal->get_html();
 
     if($this->supername) $this->after_action_delete_sub();
@@ -1139,6 +1141,7 @@ class Webappbase extends \booosta\base\Module
  
     // Hook after_action_deleteyes
     $this->after_action_deleteyes();
+    #\booosta\Framework::debug("action backpage: $this->backpage");
     return true;
   }
 
