@@ -110,6 +110,7 @@ class Webappbase extends \booosta\base\Module
     
     if($this->toptpl === null) $this->toptpl = $this->get_toptpl();
     #\booosta\Framework::debug("toptpl: $this->toptpl");
+    #\booosta\Framework::debug("toptplreadable: " . is_readable($this->toptpl));
 
     if($this->idfield === null) $this->idfield = 'id';
     $this->id = isset($this->VAR[$this->idfield]) ? intval($this->VAR[$this->idfield]) : 0;
@@ -190,6 +191,7 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['page_title_short'] = $this->config('page_title_short');
     $this->TPL['page_copyright'] = $this->config('copyright');
     $this->TPL['page_version'] = $this->config('version');
+    $this->TPL['script_extension'] = $this->script_extension;
  
     if(is_readable('incl/default.css')) $this->add_includes('<link rel="stylesheet" href="'.$this->base_dir.'incl/default.css">');
 
@@ -368,7 +370,7 @@ class Webappbase extends \booosta\base\Module
   protected function get_toptpl()
   {
     $template_module = $this->config('template_module') ?: 'bootstrap';
-    $cfg_toptpl = $this->config('toptpl') ?: 'dashboard.html';
+    $cfg_toptpl = $this->cfg_toptpl ?? $this->config('toptpl') ?? 'dashboard.html';
 
     $tpls = [$cfg_toptpl, 
              "vendor/booosta/$template_module/src/$cfg_toptpl",
@@ -425,7 +427,6 @@ class Webappbase extends \booosta\base\Module
 
     if($this->toptpl):
       $templates = ['MAIN'  =>  $this->maintpl];
-
       $tpl = $this->toptpl;
     else:
       $templates = null;
@@ -1051,7 +1052,7 @@ class Webappbase extends \booosta\base\Module
     elseif(isset($_SESSION['backpage'])) $this->backpage = $_SESSION['backpage'];
     elseif($this->backpage == '') $this->backpage = $this->self;
 
-    \booosta\Framework::debug("check_backpage: $this->backpage - _SESSION[backpage{$actionstr}_{$name}] = " . $_SESSION["backpage{$actionstr}_{$name}"]);
+    #\booosta\Framework::debug("check_backpage: $this->backpage - _SESSION[backpage{$actionstr}_{$name}] = " . $_SESSION["backpage{$actionstr}_{$name}"]);
     unset($_SESSION["backpage_$name"]);
     unset($_SESSION["backpage{$actionstr}_{$name}"]);
     #\booosta\Framework::debug($_SESSION);
