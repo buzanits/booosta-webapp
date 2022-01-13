@@ -68,6 +68,8 @@ class Webappbase extends \booosta\base\Module
   protected $tablelister_table_class = 'table table-striped';
   protected $tablelister_td_field_class = ['edit' => 'tableeditclass', 'delete' => 'tabledeleteclass'];
   protected $script_extension = '.php';
+  protected $script_actionstr = '?action=';
+  protected $script_divider = '&';
 
   public function __construct($name = null)
   {
@@ -192,6 +194,8 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['page_copyright'] = $this->config('copyright');
     $this->TPL['page_version'] = $this->config('version');
     $this->TPL['script_extension'] = $this->script_extension;
+    $this->TPL['script_actionstr'] = $this->script_actionstr;
+    $this->TPL['script_divider'] = $this->script_divider;
  
     if(is_readable('incl/default.css')) $this->add_includes('<link rel="stylesheet" href="'.$this->base_dir.'incl/default.css">');
 
@@ -440,11 +444,17 @@ class Webappbase extends \booosta\base\Module
 
     $this->TPL['home_link_'] = $this->home_link;
     $this->TPL['_goback'] = $this->goback ? 1 : 0;
-    $this->TPL['_backpage'] = $this->get_backpage();  
+
+    $backpage = $this->get_backpage();  
+    // avoid //myscript.php as backpage
+    #if($this->TPL['base_dir'] == '/' && substr($backpage, 0, 1) == '/') $backpage = ltrim($backpage, '/');
+    $this->TPL['_backpage'] = $backpage;  
+
     #\booosta\debug($templates);
     #\booosta\debug($this->VAR);
     #\booosta\debug($_SESSION);
     #\booosta\Framework::debug("parse backpage: " . $this->get_backpage());
+
     $this->output_preincludes();
     $this->output_includes();
 
@@ -929,11 +939,7 @@ class Webappbase extends \booosta\base\Module
 
   protected function linktext($text) 
   { 
-    if($picconf = $this->config("{$text}_pic_code")) return $picconf;
-
-    if($this->config('use_edit_delete_pics'))
-      if($picconf = $this->config("{$text}_pic_code")) return $picconf;
-
+    if($picconf = $this->{"{$text}_pic_code"}) return $picconf;
     return $this->t($text); 
   }
 
@@ -1081,8 +1087,12 @@ class Webappbase extends \booosta\base\Module
     $modal = $this->makeInstance('ui_modal', 'delete');
     $modal->set_template($tpl, $vars);
     $modal->set_auto_open(true);
-    #$modal->on_cancellation('console.log(222);');
-    $modal->on_cancellation('history.go(-3);');
+
+    $steps = $this->delete_cancel_steps ?? 3;
+    if($this->ui_modal_cancelpage) $cancelcode = "location.href='$this->ui_modal_cancelpage'";
+    else $cancelcode = "history.go(-$steps);";
+
+    $modal->on_cancellation($cancelcode);
     $modal->on_confirmation("location.href='$yeslink'");
     $this->TPL['modal'] = $modal->get_html();
 

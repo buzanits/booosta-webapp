@@ -8,7 +8,7 @@
 {%output}
 
 %if({%_backpage})
-<br><br>{LINK|Back|{%_backpage}}
+<br><br>{LINK|Back|{%base_dir}{%_backpage}}
 
 {/BPANEL}
 {/BBOXCENTER}
