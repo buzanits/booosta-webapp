@@ -193,9 +193,6 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['page_title_short'] = $this->config('page_title_short');
     $this->TPL['page_copyright'] = $this->config('copyright');
     $this->TPL['page_version'] = $this->config('version');
-    $this->TPL['script_extension'] = $this->script_extension;
-    $this->TPL['script_actionstr'] = $this->script_actionstr;
-    $this->TPL['script_divider'] = $this->script_divider;
  
     if(is_readable('incl/default.css')) $this->add_includes('<link rel="stylesheet" href="'.$this->base_dir.'incl/default.css">');
 
@@ -206,6 +203,11 @@ class Webappbase extends \booosta\base\Module
     foreach($methods as $method)
       if(substr($method, 0, 11) == 'webappinit_')
         call_user_func([$this, $method]);
+
+    #\booosta\Framework::debug("script_extension: $this->script_extension");
+    $this->TPL['script_extension'] = $this->script_extension;
+    $this->TPL['script_actionstr'] = $this->script_actionstr;
+    $this->TPL['script_divider'] = $this->script_divider;
 
     $this->post_init();
   }
@@ -1088,9 +1090,10 @@ class Webappbase extends \booosta\base\Module
     $modal->set_template($tpl, $vars);
     $modal->set_auto_open(true);
 
-    $steps = $this->delete_cancel_steps ?? 3;
+    #$steps = $this->delete_cancel_steps ?? 3;
     if($this->ui_modal_cancelpage) $cancelcode = "location.href='$this->ui_modal_cancelpage'";
-    else $cancelcode = "history.go(-$steps);";
+    else $cancelcode = "location.href='$this->self'";
+    #else $cancelcode = "history.go(-$steps);";
 
     $modal->on_cancellation($cancelcode);
     $modal->on_confirmation("location.href='$yeslink'");
