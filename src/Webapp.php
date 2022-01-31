@@ -1002,7 +1002,7 @@ class Webappbase extends \booosta\base\Module
     $result = $this->foreign_keys[$column]['table'];
     if($result) return $result;
 
-    $fk = $this->makeInstance('DB_foreignkeys');
+    $fk = $this->makeInstance('Db_foreignkeys');
     return $fk->referenced_table($this->name, $column);
   }
 
@@ -1013,7 +1013,7 @@ class Webappbase extends \booosta\base\Module
     $result = $this->foreign_keys[$column]['idfield'];
     if($result) return $result;
 
-    $fk = $this->makeInstance('DB_foreignkeys');
+    $fk = $this->makeInstance('Db_foreignkeys');
     return $fk->referenced_column($this->name, $column);
   }
 
@@ -1024,7 +1024,7 @@ class Webappbase extends \booosta\base\Module
     foreach($this->foreign_keys as $column=>$fk)
       if($fk['table'] == $referenced_table) return $column;
 
-    $fk = $this->makeInstance('DB_foreignkeys');
+    $fk = $this->makeInstance('Db_foreignkeys');
     return $fk->local_column($this->name, $referenced_table);
   }
 
