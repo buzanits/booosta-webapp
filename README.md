@@ -31,10 +31,10 @@ we only show how to work with _mysql_ or _mariadb_. A nice and easy way to manip
 is [phpMyAdmin](https://www.phpmyadmin.net).
 
 * Using the InnoDB engine for the data tables is recommended
-* Your data tables should have a unique identifier. It's recommended to call it **id**
+* Your data tables should have a unique identifier. It's recommended to call it **id**  
   This should be an integer, auto increment and primary key
 * If you have fields that hold the primary key of of foreign table, you should define a foreign key on that field
-* If you want to work with mysql views, you should add the comment "PK" to the primary key field.
+* If you want to work with mysql views, you should add the comment "PK" to the primary key field.  
   This is because Booosta needs this to be sure that it is the primary key, what it cannot find out in a view.
   
 Here is an example of a table holding songs on a CD made with phpMyAdmin:
