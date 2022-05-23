@@ -12,7 +12,7 @@ Up to version 3 Booosta was available at Sourceforge: https://sourceforge.net/pr
 
 ## Installation
 
-For installation instructions see https://github.com/buzanits/booosta-installer/README.md
+For installation instructions see https://github.com/buzanits/booosta-installer/blob/master/README.md
 
 ## Create your application
 
