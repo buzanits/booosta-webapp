@@ -12,13 +12,14 @@ class Webappbase extends \booosta\base\Module
   protected $superscript, $subscript;
   public $VAR, $maintpl, $subtpls, $action, $phpself, $self, $use_postfix, $postfix;
   protected $id, $super_id;
-
+  protected $rowcount;
+  
   public $tpldir = '';
   protected $toptpl;
   protected $extra_templates = [];
   protected $TPL;
 
-  protected $includes, $preincludes;
+  protected $includes, $preincludes, $htmlheader;
   protected $tablename, $classname, $listclassname, $sub_listclassname, $editclassname;
   protected $keyfilter, $fkeyfilter, $fields, $nfields;
   protected $default_clause, $default_order, $default_limit;
@@ -58,15 +59,17 @@ class Webappbase extends \booosta\base\Module
   protected $cancel_insert, $cancel_update, $cancel_delete;
   protected $foreign_keys, $sub_foreign_keys;
   protected $home_link;
-
+  protected $reload_every;
+  
   public $formelement_prefix;
   protected $use_subtablelink, $use_subsubtablelink;
   protected $edit_link;
   protected $dbobject, $old_obj;
   protected $datefield, $dateformat;
 
-  protected $tablelister_table_class = 'table table-striped';
+  protected $tablelister_table_class = 'table table-striped display responsive';
   protected $tablelister_td_field_class = ['edit' => 'tableeditclass', 'delete' => 'tabledeleteclass'];
+  protected $datatable_omit_columns;
   protected $script_extension = '.php';
   protected $script_actionstr = '?action=';
   protected $script_divider = '&';
@@ -446,7 +449,8 @@ class Webappbase extends \booosta\base\Module
 
     $this->TPL['home_link_'] = $this->home_link;
     $this->TPL['_goback'] = $this->goback ? 1 : 0;
-
+    $this->TPL['_backpage'] = $this->get_backpage();
+    
     $backpage = $this->get_backpage();  
     // avoid //myscript.php as backpage
     #if($this->TPL['base_dir'] == '/' && substr($backpage, 0, 1) == '/') $backpage = ltrim($backpage, '/');
@@ -459,7 +463,8 @@ class Webappbase extends \booosta\base\Module
 
     $this->output_preincludes();
     $this->output_includes();
-
+    $this->output_htmlheader();
+    
     if($this->pass_vars_to_template === true):
       $this->TPL = array_merge($this->VAR, $this->TPL);
     elseif(is_string($this->pass_vars_to_template)):
@@ -479,7 +484,8 @@ class Webappbase extends \booosta\base\Module
 
   protected function output_preincludes() { $this->TPL['_includes'] .= $this->preincludes; }
   protected function output_includes() { $this->TPL['_includes'] .= $this->includes; }
-
+  protected function output_htmlheader() { $this->TPL['_htmlheader'] .= $this->htmlheader; }
+  
   protected function vars2tpl($vars)
   {
     if(is_string($vars)) $vars = explode(',', $vars);
@@ -590,6 +596,7 @@ class Webappbase extends \booosta\base\Module
 
 
   public function add_includes($code) { $this->includes .= $code; }
+  public function add_htmlheader($code) { $this->htmlheader .= $code; }
   public function add_preincludes($code) { $this->preincludes .= $code; }
 
   public function add_javascript($js, $jstags = true)
@@ -683,6 +690,7 @@ class Webappbase extends \booosta\base\Module
     if($this->use_datatable === 'ajax') $result = [];
     else $result = $this->getall_data();
 
+    $this->rowcount = sizeof($result);
     #\booosta\Framework::debug('result'); \booosta\Framework::debug($result);
     $list = $this->get_tablelist($result);
     #\booosta\debug($list);
@@ -757,6 +765,7 @@ class Webappbase extends \booosta\base\Module
     $class = $this->table_sortable ? "\\booosta\\ui_sortable\\ui_sortable_table" : 'Tablelister';
     $list = $this->makeInstance($class, $data, true, $this->use_datatable);      // 3rd param: show_tabletags
     if($this->table_sort_ajaxurl) $list->set_ajaxurl($this->table_sort_ajaxurl);
+    if(is_array($this->datatable_omit_columns)) $list->set_omit_columns($this->datatable_omit_columns);
 
     if($this->datatable_display_length) $list->set_datatable_display_length($this->datatable_display_length);
     $list->always_show_header(true);
@@ -873,6 +882,7 @@ class Webappbase extends \booosta\base\Module
 
     if($this->datatable_display_length) $list->set_datatable_display_length($this->datatable_display_length);
     $list->always_show_header(true);
+    
     $list->set_datatable_libpath(__DIR__ . '/../../datatable/src');
     #$list->set_datatable_libpath($this->TPL['base_dir'] . 'vendor/booosta/datatable');
     $list->set_id($this->subname[$index] . $index);
