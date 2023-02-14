@@ -12,6 +12,20 @@ function add_toggle_checkbox(name, element)
   toggle_checkbox(name, element);
 }
 
+function toggle_checkbox_not(name, element)
+{
+  if (typeof element === 'undefined') element = '#div_' + name;
+  if($('#' + name).prop('checked')) $(element).hide();
+  else $(element).show();
+}
+
+function add_toggle_checkbox_not(name, element)
+{
+  if (typeof element === 'undefined') element = '#div_' + name;
+  $('#' + name).on('change', function(event) { toggle_checkbox_not(name, element); });
+  toggle_checkbox_not(name, element);
+}
+
 function add_toggle_checkboxes(names)
 {
   var arr = names.split(",");

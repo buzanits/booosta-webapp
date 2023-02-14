@@ -37,7 +37,7 @@ class Webappbase extends \booosta\base\Module
 
   // blank_fields: fields that will stay blank in forms and do not change when submitted blank
   // null_fields: fields that should be null in the DB when submitted blank
-  protected $checkbox_fields, $blank_fields, $null_fields, $translate_fields, $sub_translate_fields, $boolfields;
+  protected $checkbox_fields, $blank_fields, $null_fields, $translate_fields, $sub_translate_fields, $boolfields, $sub_boolfields;
   protected $treat_0_as_null = false;
   public $moduleinfo;
 
@@ -70,9 +70,10 @@ class Webappbase extends \booosta\base\Module
   protected $tablelister_table_class = 'table table-striped display responsive';
   protected $tablelister_td_field_class = ['edit' => 'tableeditclass', 'delete' => 'tabledeleteclass'];
   protected $datatable_omit_columns;
-  protected $script_extension = '.php';
-  protected $script_actionstr = '?action=';
-  protected $script_divider = '&';
+  protected $script_extension = '';
+  protected $script_actionstr = '/';
+  protected $script_divider = '/';
+
 
   public function __construct($name = null)
   {
@@ -99,8 +100,12 @@ class Webappbase extends \booosta\base\Module
     endif;
 
     if($name) $this->name = $name;
+
     if($this->subname === null) $this->subname = []; 
+    elseif(is_string($this->subname)) $this->subname = [$this->subname];
+
     if($this->subsubname === null) $this->subsubname = []; 
+    elseif(is_string($this->subsubname)) $this->subsubname = [[$this->subsubname]];
 
     if($this->subscript === null) $this->subscript = []; 
     elseif(is_string($this->subscript)) $this->subscript = [$this->subscript];
@@ -196,6 +201,8 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['page_title_short'] = $this->config('page_title_short');
     $this->TPL['page_copyright'] = $this->config('copyright');
     $this->TPL['page_version'] = $this->config('version');
+
+    if($this->boolfields === null) $this->boolfields = $this->checkbox_fields;
  
     if(is_readable('incl/default.css')) $this->add_includes('<link rel="stylesheet" href="'.$this->base_dir.'incl/default.css">');
 
@@ -415,7 +422,9 @@ class Webappbase extends \booosta\base\Module
 
     try { $this->$actionfunction(); }
     catch(\booosta\Exception $e) { $this->output($e->getMessage()); return; }
-    
+    #\booosta\Framework::debug("run actionfunction: " . $actionfunction);
+    #\booosta\Framework::debug("run backpage: " . $this->backpage);
+
     $methods = get_class_methods($this);
     foreach($methods as $method)
       if(substr($method, 0, 12) == 'beforeparse_')
@@ -449,12 +458,11 @@ class Webappbase extends \booosta\base\Module
 
     $this->TPL['home_link_'] = $this->home_link;
     $this->TPL['_goback'] = $this->goback ? 1 : 0;
-    $this->TPL['_backpage'] = $this->get_backpage();
+    $backpage = $this->TPL['_backpage'] = $this->get_backpage();
     
-    $backpage = $this->get_backpage();  
     // avoid //myscript.php as backpage
     #if($this->TPL['base_dir'] == '/' && substr($backpage, 0, 1) == '/') $backpage = ltrim($backpage, '/');
-    $this->TPL['_backpage'] = $backpage;  
+    #$this->TPL['_backpage'] = $backpage;  
 
     #\booosta\debug($templates);
     #\booosta\debug($this->VAR);
@@ -475,6 +483,8 @@ class Webappbase extends \booosta\base\Module
       endforeach;
     endif;
 
+    #\booosta\Framework::debug('vtt: ' . $this->pass_vars_to_template);
+    #\booosta\Framework::debug($this->TPL);
     $parser = $this->get_templateparser();
     if(isset($this->tpltags)) $parser->set_tags($this->tpltags);
 
@@ -504,11 +514,11 @@ class Webappbase extends \booosta\base\Module
 
   protected function get_backpage() 
   { 
-    #\booosta\debug("backpagetpl: $this->backpagetpl");
+    #\booosta\Framework::debug("backpagetpl: $this->backpagetpl");
     if(strstr($this->backpagetpl, '{%')) return str_replace(['{%id}', '{%superid}'], [$this->id, $this->super_id], $this->backpagetpl);
-    #\booosta\debug("backpage1: $this->backpage");
+    #\booosta\Framework::debug("backpage1: $this->backpage");
     if($this->backpage == '') return $this->self;
-    #\booosta\debug("backpage2: $this->backpage");
+    #\booosta\Framework::debug("backpage2: $this->backpage");
 
     return $this->backpage; 
   }
@@ -698,7 +708,7 @@ class Webappbase extends \booosta\base\Module
     // Hook in_default_makelist
     $this->in_default_makelist($list);
     $this->TPL['liste'] = $list->get_html();
-    #\booosta\debug($this->TPL['liste']);
+    #\booosta\Framework::debug($this->TPL['liste']);
     if($this->use_datatable && is_callable($list, 'get_html_includes')) $this->add_includes($list->get_html_includes());
 
     // Hook after_default_
@@ -742,6 +752,7 @@ class Webappbase extends \booosta\base\Module
 
   protected function get_tablelist($data)
   {
+    #\booosta\Framework::debug($data);
     // translate content defined in $this->translate_fields
     if(!is_array($this->translate_fields)) $this->translate_fields = array_filter(explode(',', $this->translate_fields));
     foreach($this->translate_fields as $trfield)
@@ -749,18 +760,20 @@ class Webappbase extends \booosta\base\Module
         $data[$idx][$trfield] = $this->t($data[$idx][$trfield]);
     #\booosta\debug($this->translate_fields);
     #\booosta\debug($this->fields);
+    #\booosta\Framework::debug($data);
 
     // add additional fields, that are in show_fields, but not in data
     $fields = $this->fields;
     if(!is_array($fields)) $fields = explode(',', $fields);
-    #\booosta\debug($fields);
+    #\booosta\Framework::debug($fields);
+    #\booosta\Framework::debug($data);
 
     foreach($data as $idx=>$dat)
       foreach($fields as $field):
         if($field == 'edit' || $field == 'delete') continue;
         if(!isset($dat[$field])) $data[$idx][$field] = '';
       endforeach;
-    #\booosta\debug($data);
+    #\booosta\Framework::debug($data);
 
     $class = $this->table_sortable ? "\\booosta\\ui_sortable\\ui_sortable_table" : 'Tablelister';
     $list = $this->makeInstance($class, $data, true, $this->use_datatable);      // 3rd param: show_tabletags
@@ -813,9 +826,9 @@ class Webappbase extends \booosta\base\Module
     $edit_script = $this->edit_script ?: $script;
     $delete_script = $this->delete_script ?: $script;
 
-    $subtable_params = $this->subtable_params ?: '?action=subtables&object_id=';
-    $edit_params = $this->edit_params?: '?action=edit&object_id=';
-    $delete_params = $this->delete_params ?: '?action=delete&object_id=';
+    $subtable_params = $this->subtable_params ?: '/subtables/';
+    $edit_params = $this->edit_params?: '/edit/';
+    $delete_params = $this->delete_params ?: '/delete/';
 
     if($this->use_subtablelink) $links = ['subtables' => "$subtable_script$subtable_params{$this->idfield}"];
     else $links = [];
@@ -851,13 +864,12 @@ class Webappbase extends \booosta\base\Module
       foreach($this->boolfields as $boolfield)
         if(substr($boolfield, 0, 1) == '!'):
           $boolfield = substr($boolfield, 1);
-          $list->add_replaces($boolfield, [function($val) { return !$val ? '<span class="text-success fas fa-check"></span>' :
-                                                                           '<span class="text-danger far fa-times-circle"></span>'; }]);
+          $list->add_replaces($boolfield, [function($val) { return !$val ? '<i class="far fa-check-circle" style="color:green"></i>' : '<i class="far fa-times-circle" style="color:red"></i>'; }]);
         else:
-          $list->add_replaces($boolfield, [function($val) { return $val ? '<span class="text-success fas fa-check"></span>' :
-                                                                          '<span class="text-danger far fa-times-circle"></span>'; }]);
+          $list->add_replaces($boolfield, [function($val) { return $val ? '<i class="far fa-check-circle" style="color:green"></i>' : '<i class="far fa-times-circle" style="color:red"></i>'; }]);
         endif;
 
+    #\booosta\Framework::debug($list);
     return $list;
   }
 
@@ -877,6 +889,7 @@ class Webappbase extends \booosta\base\Module
     #\booosta\debug($data);
 
     $class = $this->subtable_sortable ? "\\booosta\\ui_sortable\\ui_sortable_table" : 'Tablelister';
+    #\booosta\Framework::debug("use_datatable: $use_datatable");
     $list = $this->makeInstance($class, $data, true, $this->use_datatable);      // 3rd param: show_tabletags
     if($this->subtable_sort_ajaxurl) $list->set_ajaxurl($this->subtable_sort_ajaxurl);
 
@@ -925,9 +938,9 @@ class Webappbase extends \booosta\base\Module
     $sub_idfield = $this->sub_idfield[$index];
     if($sub_idfield == '') $sub_idfield = 'id';
 
-    $subtable_params = $this->subtable_params ?: '?action=subtables&object_id=';
-    $edit_params = $this->edit_params?: '?action=edit&object_id=';
-    $delete_params = $this->delete_params ?: '?action=delete&object_id=';
+    $subtable_params = $this->subtable_params ?: '/subtables/';
+    $edit_params = $this->edit_params?: '/edit/';
+    $delete_params = $this->delete_params ?: '/delete/';
 
     if($this->use_subsubtablelink && is_array($this->subsubname[$index]) && sizeof($this->subsubname[$index]))
       $links = ['subtables'=>"$script$subtable_params{{$sub_idfield}}"];
@@ -945,6 +958,17 @@ class Webappbase extends \booosta\base\Module
     foreach($this->sub_foreign_keys[$index] as $fk=>$val)
       $list->set_foreignkey_db($fk, $val['table'], $val['idfield'], $val['showfield']);
  
+    if(is_string($this->sub_boolfields[$index])) $this->sub_boolfields[$index] = explode(',', str_replace(' ', '', $this->sub_boolfields[$index]));
+
+    if(is_array($this->sub_boolfields[$index]))
+      foreach($this->sub_boolfields[$index] as $boolfield)
+        if(substr($boolfield, 0, 1) == '!'):
+          $boolfield = substr($boolfield, 1);
+          $list->add_replaces($boolfield, [function($val) { return !$val ? '<i class="far fa-check-circle" style="color:green"></i>' : '<i class="far fa-times-circle" style="color:red"></i>'; }]);
+        else:
+          $list->add_replaces($boolfield, [function($val) { return $val ? '<i class="far fa-check-circle" style="color:green"></i>' : '<i class="far fa-times-circle" style="color:red"></i>'; }]);
+        endif;
+
     return $list;
   }
 
@@ -1179,7 +1203,7 @@ class Webappbase extends \booosta\base\Module
   {
     if($this->use_form_token) $this->generate_form_token();
 
-    $this->before_action_new();
+    $debug = $this->before_action_new();
     if($this->tpl_new) $this->maintpl = $this->tpl_new; else $this->maintpl = "tpl/{$this->name}_new.tpl";
 
     $this->normalize_foreign_keys();
@@ -1205,6 +1229,7 @@ class Webappbase extends \booosta\base\Module
       if(method_exists($sel, 'set_prefix')) $sel->set_prefix($this->select_prefix);
       if(method_exists($sel, 'set_postfix')) $sel->set_postfix($this->select_postfix);
       
+      #\booosta\Framework::debug("select_class: $this->select_class");
       if($this->select_class) $sel->add_extra_attr("class='$this->select_class'");
       $this->TPL["list_$fk"] = $sel->get_html();
       $sel->add_top(['' => '']);
@@ -1638,7 +1663,7 @@ class Webappbase extends \booosta\base\Module
       return null;
     endif;
 
-    $this->apply_userfield('edit');
+    $this->apply_userfield('edit', $obj);
     
     #\booosta\debug($obj);
     $result = $obj->update();
@@ -1818,6 +1843,7 @@ class Webappbase extends \booosta\base\Module
   protected function chkerror($str, $args = [])
   {
     if(is_object($str) && is_callable([$str, 'get_error'])) $str = $str->get_error();
+    if(is_object($str) && !is_callable([$str, 'get_error'])) $str = print_r($str, true);
     if(is_array($str)) $str = print_r($str, true);
     if(is_string($args)) $args = ['message' => $args];
     
