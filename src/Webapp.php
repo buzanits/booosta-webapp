@@ -858,6 +858,7 @@ class Webappbase extends \booosta\base\Module
         $list->add_link($table, "{$fk_link['script']}$edit_params{{$fk_link['fk_field']}}");
     endif;
 
+    if(is_string($this->boolfields)) $this->boolfields = [$this->boolfields];
     if(is_string($this->boolfields)) $this->boolfields = explode(',', str_replace(' ', '', $this->boolfields));
 
     if(is_array($this->boolfields))
@@ -958,6 +959,7 @@ class Webappbase extends \booosta\base\Module
     foreach($this->sub_foreign_keys[$index] as $fk=>$val)
       $list->set_foreignkey_db($fk, $val['table'], $val['idfield'], $val['showfield']);
  
+    if(is_string($this->sub_boolfields)) $this->sub_boolfields = [$this->sub_boolfields];
     if(is_string($this->sub_boolfields[$index])) $this->sub_boolfields[$index] = explode(',', str_replace(' ', '', $this->sub_boolfields[$index]));
 
     if(is_array($this->sub_boolfields[$index]))
