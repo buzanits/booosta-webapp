@@ -1851,7 +1851,7 @@ class Webappbase extends \booosta\base\Module
     
     $args = array_merge(['errorstr' => 'ERROR', 'transaction' => false, 'message' => $str], $args);
 
-    if(strstr($str, $args['errorstr'])):
+    if(strstr(print_r($str, true), $args['errorstr'])):
       if($args['transaction']) $this->DB->transaction_rollback();
       $this->raise_error(str_replace('{error}', $str, $args['message']));
     endif;
