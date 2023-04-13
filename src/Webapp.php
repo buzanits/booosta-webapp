@@ -694,7 +694,7 @@ class Webappbase extends \booosta\base\Module
 
     if($this->name == '') return false;
     $this->apply_userfield('action default', $this);
-    if($this->tpl_default) $this->maintpl = $this->tpl_default; else $this->maintpl = "tpl/$this->name".'_default.tpl';
+    if($this->tpl_default) $this->maintpl = $this->tpl_default; else $this->maintpl = "$this->name".'_default.tpl';
     #\booosta\debug("clause: $this->default_clause");
 
     if($this->use_datatable === 'ajax') $result = [];
@@ -1206,7 +1206,7 @@ class Webappbase extends \booosta\base\Module
     if($this->use_form_token) $this->generate_form_token();
 
     $debug = $this->before_action_new();
-    if($this->tpl_new) $this->maintpl = $this->tpl_new; else $this->maintpl = "tpl/{$this->name}_new.tpl";
+    if($this->tpl_new) $this->maintpl = $this->tpl_new; else $this->maintpl = "{$this->name}_new.tpl";
 
     $this->normalize_foreign_keys();
 
@@ -1336,7 +1336,7 @@ class Webappbase extends \booosta\base\Module
   {
     if($this->use_form_token) $this->generate_form_token();
 
-    if($this->tpl_edit) $this->maintpl = $this->tpl_edit; else $this->maintpl = "tpl/{$this->name}_edit.tpl";
+    if($this->tpl_edit) $this->maintpl = $this->tpl_edit; else $this->maintpl = "{$this->name}_edit.tpl";
     if($this->getfunction) $func = $this->getfunction; else $func = "get_$this->postfix";
 
     #if($this->table_sortable) $this->table_sort_ajaxurl = "?action=sort&object_id={$this->id}";
@@ -1536,7 +1536,7 @@ class Webappbase extends \booosta\base\Module
     $this->apply_userfield('action subtables');
     $this->before_action_subtables();
 
-    if($this->tpl_subtables) $this->maintpl = $this->tpl_subtables; else $this->maintpl = "tpl/{$this->name}_subtables.tpl";
+    if($this->tpl_subtables) $this->maintpl = $this->tpl_subtables; else $this->maintpl = "{$this->name}_subtables.tpl";
     $this->TPL[$this->idfield] = $this->id;
     if(sizeof($this->subname)) $this->handle_subtables();
 
