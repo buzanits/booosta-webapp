@@ -1,6 +1,9 @@
 <?php
 namespace booosta\webapp;
-\booosta\Framework::init_module('webapp');
+
+use \booosta\Framework as b;
+
+b::init_module('webapp');
 
 const FEEDBACK = 'vendor/booosta/webapp/src/systpl/feedback.tpl';
 
@@ -11,7 +14,7 @@ class Webappbase extends \booosta\base\Module
   protected $name, $supername, $subname, $subsubname;
   protected $superscript, $subscript;
   public $VAR, $maintpl, $subtpls, $action, $phpself, $self, $use_postfix, $postfix;
-  protected $id, $super_id;
+  protected $id, $encid, $super_id;
   protected $rowcount;
   
   public $tpldir = '';
@@ -32,6 +35,7 @@ class Webappbase extends \booosta\base\Module
 
   protected $lightmode, $sub_lightmode;
   protected $use_datatable = false;
+  protected $use_datatable_form = false;
   protected $datatable_id;
   protected $formfields_disabled = false;
 
@@ -123,17 +127,22 @@ class Webappbase extends \booosta\base\Module
     #\booosta\Framework::debug("toptplreadable: " . is_readable($this->toptpl));
 
     if($this->idfield === null) $this->idfield = 'id';
-    $this->id = isset($this->VAR[$this->idfield]) ? intval($this->VAR[$this->idfield]) : 0;
-    $this->id = isset($this->VAR['object_id']) ? intval($this->VAR['object_id']) : $this->id;       // object_id overrules idfield
+    $this->id = isset($this->VAR[$this->idfield]) ? $this->decID($this->VAR[$this->idfield]) : 0;
+    $this->id = isset($this->VAR['object_id']) ? $this->decID($this->VAR['object_id']) : $this->id;       // object_id overrules idfield
+    $this->encid = $this->encID($this->id);
+    #b::debug("var->idfield: {$this->VAR[$this->idfield]}, var->object_id: {$this->VAR['object_id']}, this->id: $this->id");
+
     $this->action = isset($this->VAR['action']) ? $this->VAR['action'] : "";
     $this->phpself = $_SERVER['PHP_SELF'];
     $this->self = $this->phpself;
     $this->postfix = '';
     $this->keyfilter = '';
     $this->fkeyfilter = '';
+
     if($this->default_order === null) $this->default_order = '1';
     if($this->condition === null) $this->condition = [];
     $this->goback = true;
+
     if($this->no_output === null) $this->no_output = false;
     $this->cancel_insert = false;
     $this->cancel_update = false;
@@ -149,6 +158,8 @@ class Webappbase extends \booosta\base\Module
 
     if($this->foreign_keys === null) $this->foreign_keys = [];
     elseif(is_string($this->foreign_keys)) $this->foreign_keys = explode(',', $this->foreign_keys);
+
+    if(sizeof($this->foreign_keys) == 0 && $this->supername) $this->foreign_keys[] = $this->supername;
 
     #if($this->sub_foreign_keys === null) $this->sub_foreign_keys = [];
     #elseif(is_string($this->sub_foreign_keys)) $this->sub_foreign_keys[0] = [explode(',', $this->sub_foreign_keys)];
@@ -220,6 +231,7 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['script_divider'] = $this->script_divider;
 
     $this->post_init();
+    #b::debug("constructor id: $this->id");
   }
 
   public function __invoke() { $this->run(); }
@@ -475,11 +487,14 @@ class Webappbase extends \booosta\base\Module
     
     if($this->pass_vars_to_template === true):
       $this->TPL = array_merge($this->VAR, $this->TPL);
+      if(is_numeric($this->TPL['object_id'])) $this->TPL['object_id'] = $this->encID($this->TPL['object_id']);;
     elseif(is_string($this->pass_vars_to_template)):
       $vars = explode(',', $this->pass_vars_to_template);
       foreach($vars as $var):
         $var = trim($var);
-        $this->TPL[$var] = $this->VAR[$var];
+
+        if($var == 'object_id' && is_numeric($this->VAR[$var])) $this->TPL[$var] = $this->encID($this->VAR[$var]);
+        else $this->TPL[$var] = $this->VAR[$var];
       endforeach;
     endif;
 
@@ -515,7 +530,7 @@ class Webappbase extends \booosta\base\Module
   protected function get_backpage() 
   { 
     #\booosta\Framework::debug("backpagetpl: $this->backpagetpl");
-    if(strstr($this->backpagetpl, '{%')) return str_replace(['{%id}', '{%superid}'], [$this->id, $this->super_id], $this->backpagetpl);
+    if(strstr($this->backpagetpl, '{%')) return str_replace(['{%id}', '{%superid}'], [$this->encid, $this->encID($this->super_id)], $this->backpagetpl);
     #\booosta\Framework::debug("backpage1: $this->backpage");
     if($this->backpage == '') return $this->self;
     #\booosta\Framework::debug("backpage2: $this->backpage");
@@ -705,6 +720,8 @@ class Webappbase extends \booosta\base\Module
     $list = $this->get_tablelist($result);
     #\booosta\debug($list);
 
+    if($this->use_datatable_form) $list->use_form($this->use_datatable_form);
+    
     // Hook in_default_makelist
     $this->in_default_makelist($list);
     $this->TPL['liste'] = $list->get_html();
@@ -827,16 +844,18 @@ class Webappbase extends \booosta\base\Module
     $delete_script = $this->delete_script ?: $script;
 
     $subtable_params = $this->subtable_params ?: '/subtables/';
-    $edit_params = $this->edit_params?: '/edit/';
+    $edit_params = $this->edit_params ?: '/edit/';
     $delete_params = $this->delete_params ?: '/delete/';
 
     if($this->use_subtablelink) $links = ['subtables' => "$subtable_script$subtable_params{$this->idfield}"];
     else $links = [];
 
-    $links = array_merge($links, ['edit'=>"$edit_script$edit_params{"."$this->idfield}",
-                                  'delete'=>"$delete_script$delete_params{"."$this->idfield}"]);
+    $idfield = $this->idfield == 'id' ? 'encid' : $this->idfield;
+
+    $links = array_merge($links, ['edit'=>"$edit_script$edit_params{"."$idfield}",
+                                  'delete'=>"$delete_script$delete_params{"."$idfield}"]);
                                   
-    if($this->edit_link) $links = array_merge($links, [$this->edit_link => "$edit_script$edit_params{"."$this->idfield}"]);         
+    if($this->edit_link) $links = array_merge($links, [$this->edit_link => "$edit_script$edit_params{"."$idfield}"]);         
     $list->set_links($links);
 
     $this->normalize_foreign_keys();
@@ -889,7 +908,7 @@ class Webappbase extends \booosta\base\Module
     #\booosta\debug($this->sub_translate_fields);
     #\booosta\debug($data);
 
-    $class = $this->subtable_sortable ? "\\booosta\\ui_sortable\\ui_sortable_table" : 'Tablelister';
+    $class = $this->subtable_sortable ? "\\booosta\\ui_sortable\\Ui_sortable_table" : 'Tablelister';
     #\booosta\Framework::debug("use_datatable: $use_datatable");
     $list = $this->makeInstance($class, $data, true, $this->use_datatable);      // 3rd param: show_tabletags
     if($this->subtable_sort_ajaxurl) $list->set_ajaxurl($this->subtable_sort_ajaxurl);
@@ -938,6 +957,7 @@ class Webappbase extends \booosta\base\Module
     $script = $this->subscript[$index] ? $this->subscript[$index] : "{$this->subname[$index]}$this->script_extension";
     $sub_idfield = $this->sub_idfield[$index];
     if($sub_idfield == '') $sub_idfield = 'id';
+    $sub_idfield = $sub_idfield == 'id' ? 'encid' : $sub_idfield;
 
     $subtable_params = $this->subtable_params ?: '/subtables/';
     $edit_params = $this->edit_params?: '/edit/';
@@ -1108,12 +1128,13 @@ class Webappbase extends \booosta\base\Module
     $this->apply_userfield('action delete');
     
     $this->before_action_delete();
-    if($this->use_form_token) $token = '&form_token=' . $this->generate_form_token();
+    #if($this->use_form_token) $token = '&form_token=' . $this->generate_form_token();
+    if($this->use_form_token) $token = '/' . $this->generate_form_token();
 
     $deleteyes_params = $this->deleteyes_params ?: '?action=deleteyes&object_id=';
 
-    $yeslink = "$this->self$deleteyes_params$this->id$token";
-    #\booosta\Framework::debug("yeslink: $yeslink");
+    $yeslink = "$this->self$deleteyes_params$this->encid$token";
+    #b::debug("yeslink: $yeslink"); b::debug("id: $this->id");
 
     $tpl = $this->confirm_delete_text;
     if($tpl == '' && is_readable('vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang)) $tpl = 'vendor/booosta/webapp/src/systpl/confirm_delete_modal.tpl.' . $this->lang;
@@ -1181,7 +1202,7 @@ class Webappbase extends \booosta\base\Module
 
     if($this->deletefunction) $func = $this->deletefunction; else $func = "delete_$this->postfix";
 
-    list($ok, $result) = $this->call($func, intval($this->VAR['object_id'] ?? $this->id));
+    list($ok, $result) = $this->call($func, $this->decID($this->VAR['object_id']) ?: intval($this->id));
     #\booosta\debug("ok: $ok"); \booosta\debug($result);
     if(!$ok || strstr(print_r($result, true), 'ERROR') || $result === false):
       $errormsg = "ERROR while calling $func: " . print_r($result, true);
@@ -1224,8 +1245,16 @@ class Webappbase extends \booosta\base\Module
 
       if($fk_table == $this->supername) $this->superfield = $fk;
       $selclass = $this->config('use_bootstrap_select') !== false ? 'ui_select' : "\\booosta\\formelements\\Select";
-      $sel = $this->makeInstance($selclass, $fk, $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a'),
-                                 $this->VAR[$fk]);
+
+      $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
+      $eoptions = [];
+
+      if(!$this->config('use_legacy_ids')) 
+        foreach($options as $idx => $val) 
+          $eoptions[$this->encID($idx)] = $val;
+      else $eoptions = $options;
+
+      $sel = $this->makeInstance($selclass, $fk, $eoptions, $this->VAR[$fk]);
 
       if(method_exists($sel, 'set_caption')) $sel->set_caption(ucfirst($this->t($fk)));
       if(method_exists($sel, 'set_prefix')) $sel->set_prefix($this->select_prefix);
@@ -1315,6 +1344,7 @@ class Webappbase extends \booosta\base\Module
     endif;
     
     $this->id = $this->newid;
+    $this->encid = $this->encID($this->id);
     $this->after_action_newdo();
     return true;
   }
@@ -1339,13 +1369,13 @@ class Webappbase extends \booosta\base\Module
     if($this->tpl_edit) $this->maintpl = $this->tpl_edit; else $this->maintpl = "{$this->name}_edit.tpl";
     if($this->getfunction) $func = $this->getfunction; else $func = "get_$this->postfix";
 
-    #if($this->table_sortable) $this->table_sort_ajaxurl = "?action=sort&object_id={$this->id}";
-    if($this->subtable_sortable) $this->subtable_sort_ajaxurl = "?action=sort&object_id={$this->id}";
+    if($this->subtable_sortable) $this->subtable_sort_ajaxurl = "{$this->subname[0]}.php?action=sort_sortable&object_id={$this->encid}";
 
     // Hook before_action_edit
     $this->before_action_edit();
     $this->apply_userfield('action edit');
 
+    #b::debug("id: $this->id");
     list($ok, $result) = $this->call($func, $this->id, 'edit');
     if(!$ok || (is_string($result) && strstr(print_r($result, true), 'ERROR'))):
       $this->raise_error("ERROR while calling $func: " . print_r($result, true));
@@ -1395,7 +1425,19 @@ class Webappbase extends \booosta\base\Module
       endif;
   
       $selclass = $this->config('use_bootstrap_select') !== false ? 'ui_select' : "\\booosta\\formelements\\Select";
-      $sel = $this->makeInstance($selclass, $fk, $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a'), $obj->get($fk));
+
+      $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
+      $eoptions = [];
+
+      if(!$this->config('use_legacy_ids')) 
+        foreach($options as $idx => $val): 
+          $encidx = $this->encID($idx);
+          $eoptions[$encidx] = $val;
+          if($idx == $obj->get($fk)) $default = $encidx;
+        endforeach;
+      else $eoptions = $options;
+
+      $sel = $this->makeInstance($selclass, $fk, $eoptions, $default);
 
       if(method_exists($sel, 'set_caption')) $sel->set_caption(ucfirst($this->t($fk)));
       if(method_exists($sel, 'set_prefix')) $sel->set_prefix($this->select_prefix);
@@ -1409,6 +1451,10 @@ class Webappbase extends \booosta\base\Module
 
     if(sizeof($this->subname) && !$this->use_subtablelink) $this->after_edit_super();
     $this->TPL['subtables_in_edit'] = !$this->use_subtablelink;
+
+    if(is_numeric($this->TPL['object_id'])) $this->TPL['object_id'] = $this->encID($this->TPL['object_id']);
+    if(is_numeric($this->TPL['id'])) $this->TPL['id'] = $this->encID($this->TPL['id']);
+    #b::debug($this->TPL);
 
     // Hook after_action_edit
     $this->after_action_edit();
@@ -1489,7 +1535,7 @@ class Webappbase extends \booosta\base\Module
       return null;
     endif;
     
-    if($var['object_id']) $var['id'] = $var['object_id'];
+    if($var['object_id']) $var['id'] = $this->decID($var['object_id']);
     if($this->id) $var['id'] = $this->id;
 
     if($this->blank_fields && is_string($this->blank_fields)) $blank_fields = explode(',', $this->blank_fields);
@@ -1515,7 +1561,7 @@ class Webappbase extends \booosta\base\Module
         if($var[$datefield] && $var[$datefield] != '0000-00-00') $var[$datefield] = date('Y-m-d', strtotime(str_replace(' ', '', $var[$datefield])));
         #else $var[$datefield] = null;
 
-    #\booosta\debug($var);
+    #b::debug($var);
 
     list($ok, $result) = $this->call($func, $this->id, $var);
     if(!$ok || strstr(print_r($result, true), 'ERROR') || $result === false):
@@ -1557,7 +1603,7 @@ class Webappbase extends \booosta\base\Module
     else $this->apply_userfield('delete', $id);
     
     $obj = $this->get_dbobject($id);
-    if(!$obj->is_valid()) $this->raise_error("Object $id not found");
+    if(empty($obj) || !$obj->is_valid()) $this->raise_error("Object $id not found");
     $this->old_obj = clone $obj;
 
 
@@ -1594,6 +1640,7 @@ class Webappbase extends \booosta\base\Module
 
     $superfield = $this->find_super_fkfield();
     $superid = $this->DB->query_value("select `$superfield` from `$this->name` where `$this->idfield`='$id'");
+    $superid = $this->encID($superid);
 
     if($superid && $this->backpagetpl == ''):
       if($this->super_use_subtablelink):
@@ -1634,6 +1681,7 @@ class Webappbase extends \booosta\base\Module
     $obj = $this->get_dbobject($id);
     if(!is_object($obj)) $this->raise_error("Record with primary key $id not found.");
     $this->old_obj = clone $obj;
+    #b::debug($obj->get_data());
  
     if($this->checkbox_fields && is_string($this->checkbox_fields)) $checkbox_fields = explode(',', $this->checkbox_fields);
     else $checkbox_fields = $this->checkbox_fields;
@@ -1650,11 +1698,21 @@ class Webappbase extends \booosta\base\Module
         if($data[$field] === '' || ($this->treat_0_as_null && ($data[$field] === '0' || $data[$field] === 0 || $data[$field] === ''))) 
           $data[$field] = null;
 
+    #b::debug($data);
+    #b::debug($this->foreign_keys);
+    if($this->supername && isset($data[$this->supername])) $data[$this->supername] = $this->decID($data[$this->supername]);
+    foreach($this->foreign_keys as $key => $dummy):
+      if($key == $this->supername) continue;  // to not decrypt supername twice
+      if(isset($data[$key])) $data[$key] = $this->decID($data[$key]);
+    endforeach;
+    #b::debug($data);
+
     foreach($data as $var=>$val)
       if(($this->editvars === null || in_array($var, $this->editvars)) && ($this->neditvars === null || !in_array($var, $this->neditvars))) $obj->set($var, $val);
 
     if($this->supername && !$this->simple_userfield) $this->apply_userfield('sub:edit', $obj);
     else $this->apply_userfield('edit', $obj);
+    #b::debug($obj->get_data());
 
     // Hook before_edit_
     $this->before_edit_($id, $data, $obj);
@@ -1667,7 +1725,7 @@ class Webappbase extends \booosta\base\Module
 
     $this->apply_userfield('edit', $obj);
     
-    #\booosta\debug($obj);
+    #b::debug($obj->get_data());
     $result = $obj->update();
     $this->error .= $obj->get_error();
 
@@ -1698,6 +1756,7 @@ class Webappbase extends \booosta\base\Module
     $script = $this->superscript ? $this->superscript : "$this->supername$this->script_extension";
     $super_fkfield = $this->find_super_fkfield();  // which field points to the supertable?
     $superid = $this->DB->query_value("select `$super_fkfield` from `$this->name` where `$this->idfield`='$id'");
+    $superid = $this->encID($superid);
 
     if($superid && $this->backpagetpl == ''):
       if($this->super_use_subtablelink):
@@ -1746,9 +1805,14 @@ class Webappbase extends \booosta\base\Module
         if($data[$field] === '' || ($this->treat_0_as_null && ($data[$field] === '0' || $data[$field] === 0 || $data[$field] === ''))) 
           $data[$field] = null;
 
+    if($this->supername && isset($data[$this->supername])) $data[$this->supername] = $this->decID($data[$this->supername]);
+    foreach($this->foreign_keys as $key => $dummy):
+      if($key == $this->supername) continue;  // to not decrypt supername twice
+      if(isset($data[$key])) $data[$key] = $this->decID($data[$key]);
+    endforeach;
+
     foreach($data as $var=>$val)
       if($this->addvars === null || in_array($var, $this->addvars)) $obj->set($var, $val);
-
     ## removed redundant apply_userfield
 
     // Hook before_add_
@@ -1764,6 +1828,7 @@ class Webappbase extends \booosta\base\Module
     if($this->supername && !$this->simple_userfield) $this->apply_userfield('sub:new', $obj);
     else $this->apply_userfield('new', $obj);
     
+    #b::debug($obj->get_data());
     $newid = $obj->insert();
     $this->error .= $obj->get_error();
     
@@ -1775,6 +1840,7 @@ class Webappbase extends \booosta\base\Module
     endif;
 
     $this->id = $this->newid = $newid;
+    $this->encid = $this->encID($this->id);
 
     // Hook after_add_
     $this->after_add_($data, $newid);
@@ -1866,6 +1932,24 @@ class Webappbase extends \booosta\base\Module
     else foreach($names as $name) $this->add_jquery_ready("add_toggle_$type(\"$name\");");
   }
   ## removed get/set_settings and moved to module tools
+
+
+  public function encID($id)
+  {
+    if($this->config('use_legacy_ids')) return $id;
+    return $this->encrypt(uniqid() . '|' . $id); 
+  }
+
+
+  public function decID($code)
+  {
+    if($this->config('use_legacy_ids')) return $code;
+
+    $plaintext = $this->decrypt($code);
+    list($dummy, $id) = explode('|', $plaintext);
+    #b::debug("code: $code, id: $id");
+    return intval($id);
+  }
 }
 
 // pseudo table class for catching the calls to the tablelister when using ajax data
