@@ -1429,13 +1429,16 @@ class Webappbase extends \booosta\base\Module
       $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
       $eoptions = [];
 
-      if(!$this->config('use_legacy_ids')) 
-        foreach($options as $idx => $val): 
+      if(!$this->config('use_legacy_ids')):
+        foreach($options as $idx => $val):
           $encidx = $this->encID($idx);
           $eoptions[$encidx] = $val;
           if($idx == $obj->get($fk)) $default = $encidx;
         endforeach;
-      else $eoptions = $options;
+      else:
+        $eoptions = $options;
+        $default = $obj->get($fk);
+      endif;
 
       $sel = $this->makeInstance($selclass, $fk, $eoptions, $default);
 
