@@ -847,7 +847,7 @@ class Webappbase extends \booosta\base\Module
     $edit_params = $this->edit_params ?: '/edit/';
     $delete_params = $this->delete_params ?: '/delete/';
 
-    if($this->use_subtablelink) $links = ['subtables' => "$subtable_script$subtable_params{$this->idfield}"];
+    if($this->use_subtablelink) $links = ['subtables' => "$subtable_script$subtable_params{"."$this->idfield}"];
     else $links = [];
 
     $idfield = $this->idfield == 'id' ? 'encid' : $this->idfield;
