@@ -106,6 +106,7 @@ class Webappbase extends \booosta\base\Module
     if($name) $this->name = $name;
 
     if($this->subname === null) $this->subname = []; 
+    elseif(is_string($this->subname) && str_contains($this->subname, ',')) $this->subname = explode(',', $this->subname);
     elseif(is_string($this->subname)) $this->subname = [$this->subname];
 
     if($this->subsubname === null) $this->subsubname = []; 
@@ -212,6 +213,9 @@ class Webappbase extends \booosta\base\Module
     $this->TPL['page_title_short'] = $this->config('page_title_short');
     $this->TPL['page_copyright'] = $this->config('copyright');
     $this->TPL['page_version'] = $this->config('version');
+
+    $parser = $this->get_templateparser();
+    if(is_readable('incl/footer.tpl')) $this->TPL['footer_content'] = $parser->parseTemplate('incl/footer.tpl');
 
     if($this->boolfields === null) $this->boolfields = $this->checkbox_fields;
  
@@ -911,6 +915,7 @@ class Webappbase extends \booosta\base\Module
     $class = $this->subtable_sortable ? "\\booosta\\ui_sortable\\Ui_sortable_table" : 'Tablelister';
     #\booosta\Framework::debug("use_datatable: $use_datatable");
     $list = $this->makeInstance($class, $data, true, $this->use_datatable);      // 3rd param: show_tabletags
+    if($this->subtable_sortable) $list->set_table2sort($this->subname[$index]);
     if($this->subtable_sort_ajaxurl) $list->set_ajaxurl($this->subtable_sort_ajaxurl);
 
     if($this->datatable_display_length) $list->set_datatable_display_length($this->datatable_display_length);
@@ -1242,6 +1247,7 @@ class Webappbase extends \booosta\base\Module
       else:
         $fk_clause = null;
       endif;
+      #b::debug("clause: $fk_clause");
 
       if($fk_table == $this->supername) $this->superfield = $fk;
       $selclass = $this->config('use_bootstrap_select') !== false ? 'ui_select' : "\\booosta\\formelements\\Select";
@@ -1423,14 +1429,15 @@ class Webappbase extends \booosta\base\Module
       else:
         $fk_clause = null;
       endif;
+      #b::debug("clause: $fk_clause");
   
       $selclass = $this->config('use_bootstrap_select') !== false ? 'ui_select' : "\\booosta\\formelements\\Select";
 
       $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
       $eoptions = [];
 
-      if(!$this->config('use_legacy_ids')):
-        foreach($options as $idx => $val):
+      if(!$this->config('use_legacy_ids')) 
+        foreach($options as $idx => $val): 
           $encidx = $this->encID($idx);
           $eoptions[$encidx] = $val;
           if($idx == $obj->get($fk)) $default = $encidx;
@@ -1458,6 +1465,8 @@ class Webappbase extends \booosta\base\Module
     if(is_numeric($this->TPL['object_id'])) $this->TPL['object_id'] = $this->encID($this->TPL['object_id']);
     if(is_numeric($this->TPL['id'])) $this->TPL['id'] = $this->encID($this->TPL['id']);
     #b::debug($this->TPL);
+
+    if($this->supername) $this->TPL["enc_{$this->supername}"] = $this->encID($this->TPL[$this->supername]);
 
     // Hook after_action_edit
     $this->after_action_edit();
@@ -1493,6 +1502,11 @@ class Webappbase extends \booosta\base\Module
         #\booosta\debug("$func, $subname");
         if(!$ok || (is_string($result) && strstr(print_r($result, true), 'ERROR'))):
           $this->raise_error("ERROR while calling $func: " . print_r($result, true));
+        endif;
+
+        if($this->subtable_sortable):
+          $_SESSION['ui_sortable_ordernums_map'][$subname] = [];
+          foreach($result as $idx => $data) $_SESSION['ui_sortable_ordernums_map'][$subname][$idx + 1] = $data['ordernum'];
         endif;
 
         if($this->translate_data) $result = $this->translate_list($result);
