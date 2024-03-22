@@ -855,6 +855,7 @@ class Webappbase extends \booosta\base\Module
     else $links = [];
 
     $idfield = $this->idfield == 'id' ? 'encid' : $this->idfield;
+    #b::debug("idfield: $idfield");
 
     $links = array_merge($links, ['edit'=>"$edit_script$edit_params{"."$idfield}",
                                   'delete'=>"$delete_script$delete_params{"."$idfield}"]);
@@ -1953,19 +1954,21 @@ class Webappbase extends \booosta\base\Module
 
   public function encID($id)
   {
-    if($this->config('use_legacy_ids')) return $id;
-    return $this->encrypt(uniqid() . '|' . $id); 
+    if($this->config('use_encrypted_ids')) return $this->encrypt(uniqid() . '|' . $id); 
+    return $id;
   }
 
 
   public function decID($code)
   {
-    if($this->config('use_legacy_ids')) return $code;
+    if($this->config('use_encrypted_ids')):
+      $plaintext = $this->decrypt($code);
+      list($dummy, $id) = explode('|', $plaintext);
+      #b::debug("code: $code, id: $id");
+      return intval($id);
+    endif;
 
-    $plaintext = $this->decrypt($code);
-    list($dummy, $id) = explode('|', $plaintext);
-    #b::debug("code: $code, id: $id");
-    return intval($id);
+    return $code;
   }
 }
 
