@@ -17,11 +17,11 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=8.0.0",
-        "booosta/mysqli": "dev-master",
-        "booosta/templateparser": "dev-master",
-        "booosta/tools": "dev-master",
-        "booosta/tablelister": "dev-master",
-        "booosta/db_foreignkeys": "dev-master",
-        "booosta/translator": "dev-master"
+        "booosta/mysqli": "^4.0",
+        "booosta/templateparser": "^4.0",
+        "booosta/tools": "^4.0",
+        "booosta/tablelister": "^4.0",
+        "booosta/db_foreignkeys": "^4.0",
+        "booosta/translator": "^4.0"
     }
 }
