@@ -882,8 +882,8 @@ class Webappbase extends \booosta\base\Module
         $list->add_link($table, "{$fk_link['script']}$edit_params{{$fk_link['fk_field']}}");
     endif;
 
-    if(is_string($this->boolfields)) $this->boolfields = [$this->boolfields];
     if(is_string($this->boolfields)) $this->boolfields = explode(',', str_replace(' ', '', $this->boolfields));
+    #if(is_string($this->boolfields)) $this->boolfields = [$this->boolfields];
 
     if(is_array($this->boolfields))
       foreach($this->boolfields as $boolfield)
@@ -1269,8 +1269,13 @@ class Webappbase extends \booosta\base\Module
       
       #\booosta\Framework::debug("select_class: $this->select_class");
       if($this->select_class) $sel->add_extra_attr("class='$this->select_class'");
+
+      if(method_exists($sel, 'set_name')) $sel->set_name("list_$fk");
       $this->TPL["list_$fk"] = $sel->get_html();
+
       $sel->add_top(['' => '']);
+
+      if(method_exists($sel, 'set_name')) $sel->set_name("list0_$fk");
       $this->TPL["list0_$fk"] = $sel->get_html();
     endforeach;
 
