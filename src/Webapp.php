@@ -1256,7 +1256,7 @@ class Webappbase extends \booosta\base\Module
       $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
       $eoptions = [];
 
-      if(!$this->config('use_legacy_ids')) 
+      if($this->config('use_encrypted_ids')) 
         foreach($options as $idx => $val) 
           $eoptions[$this->encID($idx)] = $val;
       else $eoptions = $options;
@@ -1442,7 +1442,7 @@ class Webappbase extends \booosta\base\Module
       $options = $this->get_opts_from_table($fk_table, $fk_show, $fk_id, $fk_clause, 'a');
       $eoptions = [];
 
-      if(!$this->config('use_legacy_ids')):
+      if($this->config('use_encrypted_ids')):
         foreach($options as $idx => $val): 
           $encidx = $this->encID($idx);
           $eoptions[$encidx] = $val;
