@@ -603,7 +603,7 @@ class Webappbase extends \booosta\base\Module
   }
       
 
-  protected function redirect($url) { header("Location: $url"); }
+  protected function redirect($url) { header("Location: $url"); exit; }
 
 
   public function raise_error($message, $backpage = null, $translate = true)
